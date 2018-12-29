@@ -13,16 +13,10 @@ from time import gmtime, strftime
 
 import urllib
 
-if sys.version_info[0] == 2:
-	import urllib2
-	requestUrl = urllib2
-	parseUrl = urllib
-	from cookielib import CookieJar, LWPCookieJar
-else:
-	import urllib.request
-	requestUrl = urllib.request
-	parseUrl = urllib.parse
-	from http.cookiejar import CookieJar, LWPCookieJar
+import urllib.request
+requestUrl = urllib.request
+parseUrl = urllib.parse
+from http.cookiejar import CookieJar, LWPCookieJar
 
 """
 All functions return an array containing 'result', and 'error' if there is a problem.
@@ -259,88 +253,7 @@ class pyDHC():
 		batLevel = device['batteryLevel']
 		if batLevel == 'None' or batLevel == -1: batLevel = 'No battery'
 		return {'result': batLevel}
-	#
-	def getAllBatteries(self, lowLevel=100, filter=1): #@return['result'] array of device name / battery level under lowLevel. filter other than 1 return even no battery devices.
-		jsonDatas = []
-		for device in self._AllDevices:
-			deviceName = device['name']
-			deviceBat = device['batteryLevel']
-			if deviceBat == -1 or deviceBat == 'None':
-				if filter == 1: continue
 
-			datas = {'name': deviceName, 'battery_percent': deviceBat}
-			if deviceBat <= lowLevel:
-				jsonDatas.append(datas)
-
-		return {'result': jsonDatas}
-	#
-	def getDailyDiary(self, numEvents=20): #@number of events to return | @return['result'] array of daily events
-		if not type(numEvents) == int: return {'error': 'Provide numeric argument as number of events to report'}
-		if numEvents < 0: return {'error': 'Dude, what should I report as negative number of events ? Are you in the future ?'}
-
-		jsonString = '{"jsonrpc":"2.0", "method":"FIM/invokeOperation","params":["devolo.DeviceEvents","retrieveDailyData",[0,0,'+str(numEvents)+']]}';
-		answer = self.sendCommand(jsonString)
-		if 'error' in answer: return {'result':None, 'error':answer['error']['message']}
-
-		jsonDatas = []
-		numEvents = len(answer['result']) #may have less than requested
-		for event in reversed(answer['result']):
-			deviceName = event['deviceName']
-			deviceZone = event['deviceZone']
-			author = event['author']
-			timeOfDay = event['timeOfDay']
-			timeOfDay = strftime('%H:%M:%S', gmtime(float(timeOfDay)))
-
-			datas ={
-					'deviceName': deviceName,
-					'deviceZone': deviceZone,
-					'author': author,
-					'timeOfDay': timeOfDay
-					}
-			jsonDatas.append(datas)
-		return {'result': jsonDatas}
-	#
-	def getDailyStat(self, device, dayBefore=0): #@device name, @day before 0 1 or 2 | @return['result'] array
-		if type(device) == str:
-			device = self.getDeviceByName(device)
-			if 'error' in device: return device
-
-		if type(dayBefore)!=int: return {'error': 'Second argument should be 0 1 or 2 for today, yesterday, day before yesterday'}
-
-		operation = "retrieveDailyStatistics"
-		statSensor = device['statUID']
-		if statSensor == 'None': return {'result': None, 'error': "No statistic for such device"}
-
-		answer = self.invokeOperation(statSensor, operation, str(dayBefore))
-		if 'error' in answer: return {'result':None, 'error':answer['error']['message']}
-
-		jsonDatas = []
-		for item in answer['result']:
-			sensor = item['widgetElementUID']
-			values = item['value']
-			if 'timeOfDay' in item:
-				timesOfDay = item['timeOfDay']
-
-			if 'Door/Window:Sensor' in device['model']:
-				if sensor in 'BinarySensor:hdm': sensor = 'opened'
-				if sensor in '#MultilevelSensor(1)': sensor = 'temperature'
-				if sensor in '#MultilevelSensor(3)': sensor = 'light'
-			if 'Motion:Sensor' in device['model']:
-				if sensor in 'BinarySensor:hdm': sensor = 'alarm'
-				if sensor in '#MultilevelSensor(1)': sensor = 'temperature'
-				if sensor in '#MultilevelSensor(3)': sensor = 'light'
-			if 'Meter:hdm' in sensor: sensor = 'consumption'
-
-			sensorData = {'sensor': sensor}
-			countValues = len(values)
-			for i in range(countValues):
-				timeOfDay = strftime('%H:%M:%S', gmtime(float(timesOfDay[i])))
-				sensorData[timeOfDay] = values[i]
-
-			jsonDatas.append(sensorData)
-
-		return {'result': jsonDatas}
-	#
 	def getWeather(self): #@return['result'] array of weather data for next three days
 		jsonString = '{"jsonrpc":"2.0","method":"FIM/getFunctionalItems","params":[["devolo.WeatherWidget"],0]}'
 		answer = self.sendCommand(jsonString)
@@ -390,20 +303,6 @@ class pyDHC():
 		yesterday = yesterday.strftime('%d.%m.%Y')
 		datasArray = {}
 		datasArray[yesterday] = {}
-
-		for device in self._AllDevices:
-			sensors = device['sensors']
-			for sensor in sensors:
-				if 'Meter:hdm' in sensor:
-					name = device['name']
-					datas = self.getDailyStat(device, 1)
-					datas = datas['result'][0]
-					total = 0
-					for date, value in datas.items():
-						if date == 'sensor': continue
-						total += float(value)
-					total = str(total/1000)+'kWh'
-					datasArray[yesterday][name] = total
 
 		#add yesterday sums to previously loaded datas:
 		prevDatas[yesterday] = datasArray[yesterday]
@@ -593,21 +492,6 @@ class pyDHC():
 		result = True if answer['result']==None else False
 		return {'result':result}
 	#
-	def setDeviceDiary(self, device, state=True): #@device name, @state true/false | @return['result'] central answer, @return['error'] if any
-		if type(device) == str:
-			device = self.getDeviceByName(device)
-			if 'error' in device: return device
-
-		deviceName = device['name']
-		deviceIcon = device['icon']
-		zoneID = device['zoneId']
-		deviceSetting = 'gds.'+device['uid']
-		state = str(state)
-
-		jsonString = '{"jsonrpc":"2.0","method":"FIM/invokeOperation","params":["'+deviceSetting+'","save",[{"name":"'+deviceName+'","icon":"'+deviceIcon+'","zoneID":"'+zoneID+'","eventsEnabled":'+state+'}]]}'
-		answer = self.sendCommand(jsonString)
-		if 'error' in answer: return {'result':None, 'error':answer['error']['message']}
-		return {'result': True}
 	#
 
 
@@ -845,21 +729,6 @@ class pyDHC():
 				self._AllMessages['customMessages'].append(thisMsg)
 	#
 	def formatStates(self, sensorType, key, value): #string formating accordingly to type of data. May support units regarding timezone in the future...
-		if (sensorType == 'Meter' and key == 'totalValue'): return str(value)+'kWh'
-		if (sensorType == 'Meter' and key == 'currentValue'): return str(value)+'W'
-		if (sensorType == 'Meter' and key == 'voltage'): return str(value)+'V'
-
-		if key == 'sinceTime':
-			ts = str(value)[:-3]
-			date = strftime("%d %b %Y %H:%M", gmtime(float(ts)))
-			return date
-
-		if (sensorType == 'LastActivity' and key == 'lastActivityTime'):
-			if value == -1: return 'Never'
-			ts = str(value)[:-3]
-			date = strftime("%d %b %Y %H:%M", gmtime(float(ts)))
-			return date
-
 		return value
 	#
 
@@ -913,7 +782,7 @@ class pyDHC():
 		self._userInfos = None
 		self._centralInfos = None
 		self._gateway = None
-		self._gateIdx = gateIdx;
+		self._gateIdx = gateIdx
 		self._uuid = None
 		self._token = None
 		self._wasCookiesLoaded = False
@@ -1037,8 +906,8 @@ class pyDHC():
 	#
 
 	def cookies_are_hot(self):
-		if os.access('/', os.W_OK):
-			APIfolder = os.path.dirname(os.path.realpath(__file__))
+		APIfolder = os.path.dirname(os.path.realpath(__file__))
+		if os.access(APIfolder, os.W_OK):
 			self._cookFile = APIfolder+'/pyDHC_cookies.txt'
 		else:
 			return False
