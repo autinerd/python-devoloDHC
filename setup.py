@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyDHC",
-    version="0.2",
+    version="1.3",
     author="Sidney Kuyateh",
     author_email="sidneyjohn23@icloud.com",
     description="Communication to Devolo Home Control hub",

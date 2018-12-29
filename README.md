@@ -1,5 +1,3 @@
-<img align="right" src="/readmeAssets/devoloAPI.jpg" width="150">
-
 # python-devoloDHC
 
 ## python API for Devolo Home Control
@@ -56,14 +54,11 @@ If someone want to continue further development of this API, contact me.
 [Unsupported device](#unsupported-device)<br />
 [Version history](#version-history)<br />
 
-<img align="right" src="/readmeAssets/requirements.png" width="48">
-
 ## Requirements
 - Python 2.7.11+ / Python 3+
 - The API require internet access (it will authenticate against Devolo servers).
 
 [&#8657;](#python-devolodhc)
-<img align="right" src="/readmeAssets/howto.png" width="48">
 
 ## How-to
 - Download module/pyDHC.py.
@@ -102,7 +97,6 @@ infos = DHC.getInfos()
 pp.pprint(infos)
 ```
 [&#8657;](python-devolodhc)
-<img align="right" src="/readmeAssets/read.png" width="48">
 
 #### READING OPERATIONS<br />
 *Change devices names by yours!*
@@ -176,7 +170,6 @@ url = DHC.getMessageData('MyAlert')
 ```
 
 [&#8657;](#python-devolodhc)
-<img align="right" src="/readmeAssets/set.png" width="48">
 
 #### CHANGING OPERATIONS<br />
 *Change devices names by yours!*
@@ -236,7 +229,6 @@ DHC.setDeviceDiary('movekitchen', false)
 ```
 
 [&#8657;](#python-devolodhc)
-<img align="right" src="/readmeAssets/consumption.png" width="48">
 
 #### Consumption
 
@@ -271,7 +263,6 @@ help = DHC.debugDevice('MyStrangeDevice')
 pp.pprint(help)
 ```
 [&#8657;](#python-devolodhc)
-<img align="right" src="/readmeAssets/changes.png" width="48">
 
 ## Version history
 
@@ -288,7 +279,6 @@ DHC.isDeviceOn('my2relay', 1) //support 1, 2, 'All' for Q1, Q2, both
 - First public version
 
 [&#8657;](#python-devolodhc)
-<img align="right" src="/readmeAssets/mit.png" width="48">
 
 ## License
 
