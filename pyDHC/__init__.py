@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+name = "pyDHC"
+
 import sys
 import os
 
@@ -28,6 +30,10 @@ So we can always check for error, then parse the result:
 		print "Device state:", state['result']
 """
 class pyDHC():
+
+	@property
+	def AllDevices(self):
+		return self._AllDevices
 	#user functions======================================================
 	def getInfos(self): #@return['result'] array infos from this api, Devolo user, and Devolo central
 		if self._userInfos == None:
